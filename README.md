@@ -9,7 +9,10 @@ A modern, high-performance productivity dashboard designed specifically for stud
 ![Dashboard Preview](https://placehold.co/1200x600/6366f1/ffffff?text=Student+Hub+Dashboard+Mockup)
 
 ---
+### 📊 Live Preview 
 
+     https://student-dashboard-nu-flame.vercel.app/
+     
 ## ✨ Features
 
 ### 📊 Live Statistics
