@@ -4,43 +4,26 @@ import {
     ListTodo, CheckCircle2, FileText, Clock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import {
-    getTasksFromFirestore,
-    getNotesFromFirestore,
-    getSubjectsFromFirestore
-} from '../services/firestoreService';
 import TaskManager from '../components/features/TaskManager';
 import StudyPlanner from '../components/features/StudyPlanner';
 import AITaskAssistant from '../components/features/AITaskAssistant';
 import Notes from '../components/features/Notes';
 
 const Dashboard = () => {
-    const { currentUser, isGuest } = useAuth();
+    const { currentUser } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [notes, setNotes] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const fetchAllData = useCallback(async () => {
-        if (!currentUser && !isGuest) return;
+        if (!currentUser) return;
         setLoading(true);
         try {
-            let tasksData, notesData, subjectsData;
-            
-            if (isGuest) {
-                // Use guest service for guest users
-                const guestService = await import('../services/guestService');
-                tasksData = guestService.getGuestTasks();
-                notesData = guestService.getGuestNotes();
-                subjectsData = guestService.getGuestSubjects();
-            } else {
-                // Use Firestore for authenticated users
-                [tasksData, notesData, subjectsData] = await Promise.all([
-                    getTasksFromFirestore(currentUser.uid),
-                    getNotesFromFirestore(currentUser.uid),
-                    getSubjectsFromFirestore(currentUser.uid)
-                ]);
-            }
+            const guestService = await import('../services/guestService');
+            const tasksData = guestService.getGuestTasks();
+            const notesData = guestService.getGuestNotes();
+            const subjectsData = guestService.getGuestSubjects();
             
             setTasks(tasksData || []);
             setNotes(notesData || []);
@@ -50,7 +33,7 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [currentUser, isGuest]);
+    }, [currentUser]);
 
     useEffect(() => {
         fetchAllData();
