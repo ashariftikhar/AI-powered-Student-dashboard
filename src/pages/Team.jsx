@@ -13,8 +13,8 @@ import {
     handleFriendRequestStatus
 } from '../services/firestoreService';
 import {
-    Users, UserPlus, Trash2, Shield, Loader2, Search,
-    UserCheck, UserMinus, Mail, Share2, Copy, Check,
+    Users, UserPlus, Trash2, Loader2, Search,
+    UserCheck, UserMinus, Mail,
     Clock, Bell, X, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -22,14 +22,7 @@ import { toast } from 'sonner';
 const Team = () => {
     const { currentUser } = useAuth();
 
-    // States for Manual Team Members
-    const [members, setMembers] = useState([]);
-    const [name, setName] = useState('');
-    const [role, setRole] = useState('Member');
-    const [isAddingMember, setIsAddingMember] = useState(false);
     const [searchParams] = useSearchParams();
-    const [copied, setCopied] = useState(false);
-    const inviteLink = `${window.location.origin}/invite?uid=${currentUser?.uid}`;
 
     // States for Real Friends & Requests
     const [friends, setFriends] = useState([]);
@@ -40,22 +33,13 @@ const Team = () => {
     const [requests, setRequests] = useState([]);
     const [isRequesting, setIsRequesting] = useState(null);
 
-    const handleCopyLink = () => {
-        navigator.clipboard.writeText(inviteLink);
-        setCopied(true);
-        toast.success("Invite link copied to clipboard!");
-        setTimeout(() => setCopied(false), 2000);
-    };
+
 
     const fetchData = useCallback(async () => {
         if (!currentUser) return;
 
         try {
-            const [memberData, friendData] = await Promise.all([
-                getMembersFromFirestore(currentUser.uid),
-                getFriendsFromFirestore(currentUser.uid)
-            ]);
-            setMembers(memberData || []);
+            const friendData = await getFriendsFromFirestore(currentUser.uid);
             setFriends(friendData || []);
         } catch (error) {
             console.error("Fetch data error:", error);
@@ -142,24 +126,7 @@ const Team = () => {
         }
     };
 
-    const handleAddMember = async (e) => {
-        e.preventDefault();
-        if (!name.trim() || !currentUser) return;
-        setIsAddingMember(false);
-        try {
-            await addMemberToFirestore(currentUser.uid, { name, role });
-            setName(''); setRole('Member'); fetchData();
-        } catch (error) {
-            console.error("Error adding member:", error);
-        }
-    };
 
-    const handleDeleteMember = async (id) => {
-        if (!currentUser) return;
-        setMembers(prev => prev.filter(m => m.id !== id));
-        try { await deleteMemberFromFirestore(currentUser.uid, id); }
-        catch (error) { console.error("Error deleting member:", error); fetchData(); }
-    };
 
     return (
         <div className="space-y-12 pb-20 max-w-7xl mx-auto px-4 animate-fade-in">
@@ -174,13 +141,7 @@ const Team = () => {
                         <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Discover partners, manage requests, and build your team.</p>
                     </div>
                 </div>
-                <button
-                    onClick={() => setIsAddingMember(!isAddingMember)}
-                    className="flex items-center gap-2 px-8 py-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-[2rem] border border-slate-100 dark:border-slate-800 hover:bg-slate-50 transition-all font-black shadow-sm group"
-                >
-                    <UserPlus className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                    QUICK COLLABORATOR
-                </button>
+
             </div>
 
             {/* Friend Requests Inbox */}
@@ -343,99 +304,7 @@ const Team = () => {
                 )}
             </section>
 
-            {/* Invite & Success Section */}
-            <div className="pt-12 border-t border-slate-100 dark:border-slate-800">
-                <div className="bg-indigo-600 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl group-hover:bg-white/20 transition-all duration-700"></div>
-                    <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
-                        <div className="flex items-center gap-8">
-                            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-[2rem] flex items-center justify-center shadow-inner">
-                                <Share2 className="w-10 h-10" />
-                            </div>
-                            <div>
-                                <h2 className="text-3xl font-black tracking-tight leading-none mb-2">Invite Network</h2>
-                                <p className="text-indigo-100 font-bold opacity-80 uppercase tracking-widest text-xs">Direct Neural Link for Collaboration</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col md:flex-row items-center gap-4 bg-black/20 backdrop-blur-xl p-3 rounded-[2.5rem] border border-white/10 w-full lg:w-auto">
-                            <code className="px-6 py-3 text-sm font-black text-indigo-50 leading-none truncate max-w-[200px] md:max-w-[400px]">{inviteLink}</code>
-                            <button
-                                onClick={handleCopyLink}
-                                className={`w-full md:w-auto px-10 py-4 rounded-[1.5rem] font-black uppercase text-sm flex items-center justify-center gap-3 transition-all duration-300 ${copied ? 'bg-emerald-500 text-white scale-105' : 'bg-white text-indigo-600 hover:bg-slate-50 hover:scale-105 active:scale-95'}`}
-                            >
-                                {copied ? <CheckCircle2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                                {copied ? "Neural Link Copied" : "Copy Secure Link"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            {/* Manual Members Section */}
-            {(members.length > 0 || isAddingMember) && (
-                <section className="space-y-8 pt-20">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-900 dark:bg-slate-800 rounded-2xl flex items-center justify-center text-white">
-                            <Shield className="w-5 h-5" />
-                        </div>
-                        <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 uppercase tracking-tight">External Operatives</h2>
-                    </div>
-
-                    {isAddingMember && (
-                        <form onSubmit={handleAddMember} className="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-2xl animate-fade-in relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Operative Alias</label>
-                                    <input
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl outline-none font-bold"
-                                        placeholder="Identification name..."
-                                        autoFocus
-                                    />
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Strategic Role</label>
-                                    <select
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl outline-none font-bold appearance-none"
-                                    >
-                                        <option>Member</option>
-                                        <option>Lead</option>
-                                        <option>Contributor</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="mt-8 flex justify-end gap-3 relative z-10">
-                                <button type="button" onClick={() => setIsAddingMember(false)} className="px-8 py-3 font-black text-slate-400 uppercase text-sm hover:text-slate-600 transition-colors">Discard</button>
-                                <button type="submit" className="px-10 py-4 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl font-black uppercase text-sm shadow-xl active:scale-95 transition-all">Register Operative</button>
-                            </div>
-                        </form>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {members.map(member => (
-                            <div key={member.id} className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-md p-6 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 flex justify-between items-center group hover:bg-white dark:hover:bg-slate-900 transition-all">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-xl text-slate-400">
-                                        {member.name[0]}
-                                    </div>
-                                    <div>
-                                        <div className="font-black text-slate-900 dark:text-white leading-tight">{member.name}</div>
-                                        <div className="text-[9px] font-black text-blue-600 uppercase tracking-[0.2em] mt-1">{member.role}</div>
-                                    </div>
-                                </div>
-                                <button onClick={() => handleDeleteMember(member.id)} className="text-slate-200 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 hover:scale-125 p-2">
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
         </div>
     );
 };

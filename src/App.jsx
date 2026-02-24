@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import InviteHandler from './components/InviteHandler';
 import { AuthProvider } from './context/AuthContext';
@@ -33,9 +33,9 @@ function App() {
       <Router>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+            {/* Redirect login/signup to dashboard (free access) */}
+            <Route path="/login" element={<Navigate to="/" replace />} />
+            <Route path="/signup" element={<Navigate to="/" replace />} />
             <Route path="/invite/:inviteId" element={<InviteHandler />} />
 
             {/* Protected Routes */}

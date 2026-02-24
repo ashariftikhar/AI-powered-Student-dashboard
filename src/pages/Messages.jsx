@@ -4,17 +4,15 @@ import {
     getFriendsFromFirestore,
     getOrCreateChat,
     sendChatMessage,
-    subscribeToChatMessages,
-    sendGlobalMessage,
-    subscribeToGlobalChat
+    subscribeToChatMessages
 } from '../services/firestoreService';
-import { Send, MessageSquare, Loader2, Users, ArrowLeft, Globe, ShieldCheck, Sparkles } from 'lucide-react';
+import { Send, MessageSquare, Loader2, Users, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Messages = () => {
     const { currentUser } = useAuth();
     const [friends, setFriends] = useState([]);
-    const [selectedChat, setSelectedChat] = useState({ id: 'global', type: 'global', name: 'Global Team Chat' });
+    const [selectedChat, setSelectedChat] = useState(null);
     const [chatId, setChatId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [loadingFriends, setLoadingFriends] = useState(true);
@@ -48,27 +46,20 @@ const Messages = () => {
         setMessages([]);
         setLoadingMessages(true);
 
-        if (selectedChat.type === 'global') {
-            unsubscribe = subscribeToGlobalChat((msgs) => {
-                setMessages(msgs);
-                setLoadingMessages(false);
-            });
-        } else {
-            const initPrivateChat = async () => {
-                try {
-                    const id = await getOrCreateChat(currentUser.uid, selectedChat.id);
-                    setChatId(id);
-                    unsubscribe = subscribeToChatMessages(id, (msgs) => {
-                        setMessages(msgs);
-                        setLoadingMessages(false);
-                    });
-                } catch (error) {
-                    console.error("Chat init error:", error);
+        const initPrivateChat = async () => {
+            try {
+                const id = await getOrCreateChat(currentUser.uid, selectedChat.id);
+                setChatId(id);
+                unsubscribe = subscribeToChatMessages(id, (msgs) => {
+                    setMessages(msgs);
                     setLoadingMessages(false);
-                }
-            };
-            initPrivateChat();
-        }
+                });
+            } catch (error) {
+                console.error("Chat init error:", error);
+                setLoadingMessages(false);
+            }
+        };
+        initPrivateChat();
 
         return () => unsubscribe && unsubscribe();
     }, [selectedChat, currentUser]);
@@ -82,17 +73,13 @@ const Messages = () => {
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !currentUser) return;
+        if (!newMessage.trim() || !currentUser || !chatId) return;
 
         const text = newMessage;
         setNewMessage('');
 
         try {
-            if (selectedChat.type === 'global') {
-                await sendGlobalMessage(currentUser.uid, currentUser.displayName || 'User', text);
-            } else if (chatId) {
-                await sendChatMessage(chatId, currentUser.uid, text);
-            }
+            await sendChatMessage(chatId, currentUser.uid, text);
         } catch (error) {
             console.error("Error sending message:", error);
             toast.error("Packet transmission failed. Try again.");
@@ -113,31 +100,6 @@ const Messages = () => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                    {/* Global Chat Toggle */}
-                    <button
-                        onClick={() => setSelectedChat({ id: 'global', type: 'global', name: 'Global Team Chat' })}
-                        className={`w-full p-6 rounded-[2.5rem] flex items-center gap-5 transition-all duration-300 relative overflow-hidden group ${selectedChat?.type === 'global'
-                            ? 'bg-slate-900 text-white shadow-2xl scale-[1.02]'
-                            : 'bg-blue-50/50 dark:bg-blue-900/10 text-slate-700 dark:text-slate-300 hover:bg-blue-100/50 dark:hover:bg-blue-900/20'}`}
-                    >
-                        {selectedChat?.type === 'global' && <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 animate-pulse"></div>}
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${selectedChat?.type === 'global' ? 'bg-blue-600' : 'bg-white dark:bg-slate-800'}`}>
-                            <Globe className={`w-7 h-7 ${selectedChat?.type === 'global' ? 'text-white' : 'text-blue-600'}`} />
-                        </div>
-                        <div className="text-left flex-1 min-w-0 relative z-10">
-                            <h4 className="font-black text-lg tracking-tight">Team Portal</h4>
-                            <p className={`text-xs font-bold uppercase tracking-widest truncate ${selectedChat?.type === 'global' ? 'text-blue-200' : 'text-slate-400'}`}>
-                                Global Network
-                            </p>
-                        </div>
-                    </button>
-
-                    <div className="py-4 flex items-center gap-4 px-2">
-                        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800/50"></div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Direct Channels</span>
-                        <div className="h-px flex-1 bg-slate-100 dark:bg-slate-800/50"></div>
-                    </div>
-
                     {loadingFriends ? (
                         <div className="flex justify-center py-10">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -182,7 +144,7 @@ const Messages = () => {
                                 </button>
                                 <div className="relative">
                                     <div className="w-14 h-14 rounded-2xl bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-white font-black text-2xl shadow-2xl transition-transform hover:rotate-6">
-                                        {selectedChat.type === 'global' ? <Globe className="w-7 h-7 text-blue-400" /> : selectedChat.name[0].toUpperCase()}
+                                        {selectedChat.name[0].toUpperCase()}
                                     </div>
                                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full"></div>
                                 </div>
@@ -193,7 +155,7 @@ const Messages = () => {
                                     </div>
                                     <div className="flex items-center gap-2 mt-1.5 px-3 py-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-lg w-fit">
                                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                                        <span className="text-[9px] text-emerald-600 dark:text-emerald-500 font-black uppercase tracking-[0.2em]">{selectedChat.type === 'global' ? 'Public Broadcast' : 'Peer-to-Peer'}</span>
+                                        <span className="text-[9px] text-emerald-600 dark:text-emerald-500 font-black uppercase tracking-[0.2em]">Peer-to-Peer</span>
                                     </div>
                                 </div>
                             </div>
@@ -234,7 +196,7 @@ const Messages = () => {
                                                 {!isMe && !isSameUser && (
                                                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-4 flex items-center gap-2">
                                                         <div className="w-2 h-2 rounded bg-blue-500/20"></div>
-                                                        {selectedChat.type === 'global' ? (msg.senderName || 'Unknown Operative') : selectedChat.name}
+                                                        {selectedChat.name}
                                                     </span>
                                                 )}
                                                 <div className={`group relative max-w-[85%] lg:max-w-[70%] px-8 py-5 rounded-[2rem] shadow-sm transition-all duration-300 ${isMe
@@ -261,7 +223,7 @@ const Messages = () => {
                                         type="text"
                                         value={newMessage}
                                         onChange={(e) => setNewMessage(e.target.value)}
-                                        placeholder={selectedChat.type === 'global' ? "Broadcast to network..." : `Secure message to ${selectedChat.name}...`}
+                                        placeholder={`Secure message to ${selectedChat.name}...`}
                                         className="w-full px-10 py-6 bg-slate-50 dark:bg-slate-950/50 border-2 border-slate-100 dark:border-slate-800/50 rounded-[2.5rem] outline-none text-base dark:text-white font-black transition-all group-focus-within:border-blue-600/50 group-focus-within:ring-4 group-focus-within:ring-blue-500/10 placeholder:text-slate-400 placeholder:italic"
                                     />
                                     <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">

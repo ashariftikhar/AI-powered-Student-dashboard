@@ -10,7 +10,7 @@ import { Plus, Trash2, CheckCircle, Edit2, X, ClipboardList, Loader2 } from 'luc
 import Toast from '../ui/Toast';
 
 const TaskManager = () => {
-    const { currentUser } = useAuth();
+    const { currentUser, isGuest, guestId } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [isFirestoreLoading, setIsFirestoreLoading] = useState(true);
 
@@ -22,16 +22,20 @@ const TaskManager = () => {
     const [toast, setToast] = useState(null);
 
     const fetchTasks = useCallback(async () => {
-        if (!currentUser) return;
+        if (!currentUser && !isGuest) return;
         setIsFirestoreLoading(true);
         try {
-            const data = await getTasksFromFirestore(currentUser.uid);
-            // Fallback logic: if data is empty, we could keep local state if we had one 
-            // but for now we just set what we get from Firestore.
+            let data;
+            if (isGuest) {
+                const guestService = await import('../../services/guestService');
+                data = guestService.getGuestTasks();
+            } else {
+                data = await getTasksFromFirestore(currentUser.uid);
+            }
             if (data && data.length > 0) {
                 setTasks(data);
             } else {
-                console.log("Firestore returned no tasks, using local empty state.");
+                console.log("No tasks found, using empty state.");
             }
         } catch (error) {
             console.error("Fetch error:", error);
@@ -39,7 +43,7 @@ const TaskManager = () => {
         } finally {
             setIsFirestoreLoading(false);
         }
-    }, [currentUser]);
+    }, [currentUser, isGuest]);
 
     useEffect(() => {
         fetchTasks();
@@ -51,7 +55,8 @@ const TaskManager = () => {
 
     const handleAddTask = async (e) => {
         e.preventDefault();
-        if (!newTaskInput.trim() || !currentUser) return;
+        if (!newTaskInput.trim()) return;
+        if (!currentUser && !isGuest) return;
 
         const optimisticTask = {
             id: 'temp-' + Date.now(),
@@ -60,56 +65,71 @@ const TaskManager = () => {
             createdAt: { seconds: Date.now() / 1000 }
         };
 
-        // UI Update (Optimistic)
         setTasks(prev => [optimisticTask, ...prev]);
         setNewTaskInput('');
         setIsActionLoading(true);
 
         try {
-            await addTaskToFirestore(currentUser.uid, {
-                text: optimisticTask.text,
-                completed: optimisticTask.completed
-            });
+            if (isGuest) {
+                const guestService = await import('../../services/guestService');
+                guestService.addGuestTask({
+                    text: optimisticTask.text,
+                    completed: optimisticTask.completed
+                });
+            } else {
+                await addTaskToFirestore(currentUser.uid, {
+                    text: optimisticTask.text,
+                    completed: optimisticTask.completed
+                });
+            }
             showToast('Task added successfully');
         } catch (error) {
             showToast('Failed to add task', 'error');
             console.error(error);
         } finally {
             setIsActionLoading(false);
-            await fetchTasks(); // Sync with server (get real ID and timestamp)
+            await fetchTasks();
         }
     };
 
     const toggleTaskCompletion = async (taskId, currentStatus) => {
-        if (!currentUser) return;
+        if (!currentUser && !isGuest) return;
 
-        // UI Update (Optimistic)
         setTasks(prev => prev.map(task =>
             task.id === taskId ? { ...task, completed: !currentStatus } : task
         ));
 
         try {
-            await updateTaskInFirestore(currentUser.uid, taskId, { completed: !currentStatus });
+            if (isGuest) {
+                const guestService = await import('../../services/guestService');
+                guestService.updateGuestTask(taskId, { completed: !currentStatus });
+            } else {
+                await updateTaskInFirestore(currentUser.uid, taskId, { completed: !currentStatus });
+            }
         } catch (error) {
             showToast('Failed to update task', 'error');
             console.error(error);
-            await fetchTasks(); // Rollback/Resync
+            await fetchTasks();
         }
     };
 
     const handleDeleteTask = async (taskId) => {
-        if (!currentUser) return;
+        if (!currentUser && !isGuest) return;
 
-        // UI Update (Optimistic)
         setTasks(prev => prev.filter(task => task.id !== taskId));
 
         try {
-            await deleteTaskFromFirestore(currentUser.uid, taskId);
+            if (isGuest) {
+                const guestService = await import('../../services/guestService');
+                guestService.deleteGuestTask(taskId);
+            } else {
+                await deleteTaskFromFirestore(currentUser.uid, taskId);
+            }
             showToast('Task deleted', 'error');
         } catch (error) {
             showToast('Failed to delete task', 'error');
             console.error(error);
-            await fetchTasks(); // Rollback/Resync
+            await fetchTasks();
         }
     };
 
@@ -119,9 +139,15 @@ const TaskManager = () => {
     };
 
     const saveTaskChanges = async (taskId) => {
-        if (!editingTaskText.trim() || !currentUser) return;
+        if (!editingTaskText.trim()) return;
+        if (!currentUser && !isGuest) return;
         try {
-            await updateTaskInFirestore(currentUser.uid, taskId, { text: editingTaskText });
+            if (isGuest) {
+                const guestService = await import('../../services/guestService');
+                guestService.updateGuestTask(taskId, { text: editingTaskText });
+            } else {
+                await updateTaskInFirestore(currentUser.uid, taskId, { text: editingTaskText });
+            }
             setEditingId(null);
             showToast('Task updated');
             await fetchTasks();

@@ -15,21 +15,33 @@ import AITaskAssistant from '../components/features/AITaskAssistant';
 import Notes from '../components/features/Notes';
 
 const Dashboard = () => {
-    const { currentUser } = useAuth();
+    const { currentUser, isGuest } = useAuth();
     const [tasks, setTasks] = useState([]);
     const [notes, setNotes] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const fetchAllData = useCallback(async () => {
-        if (!currentUser) return;
+        if (!currentUser && !isGuest) return;
         setLoading(true);
         try {
-            const [tasksData, notesData, subjectsData] = await Promise.all([
-                getTasksFromFirestore(currentUser.uid),
-                getNotesFromFirestore(currentUser.uid),
-                getSubjectsFromFirestore(currentUser.uid)
-            ]);
+            let tasksData, notesData, subjectsData;
+            
+            if (isGuest) {
+                // Use guest service for guest users
+                const guestService = await import('../services/guestService');
+                tasksData = guestService.getGuestTasks();
+                notesData = guestService.getGuestNotes();
+                subjectsData = guestService.getGuestSubjects();
+            } else {
+                // Use Firestore for authenticated users
+                [tasksData, notesData, subjectsData] = await Promise.all([
+                    getTasksFromFirestore(currentUser.uid),
+                    getNotesFromFirestore(currentUser.uid),
+                    getSubjectsFromFirestore(currentUser.uid)
+                ]);
+            }
+            
             setTasks(tasksData || []);
             setNotes(notesData || []);
             setSubjects(subjectsData || []);
@@ -38,7 +50,7 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
-    }, [currentUser]);
+    }, [currentUser, isGuest]);
 
     useEffect(() => {
         fetchAllData();

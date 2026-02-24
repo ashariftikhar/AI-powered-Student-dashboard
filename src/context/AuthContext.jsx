@@ -29,14 +29,16 @@ export const AuthProvider = ({ children }) => {
     const [isGuest, setIsGuest] = useState(false);
     const [guestId, setGuestId] = useState(null);
 
-    // Check for guest mode on mount
+    // Auto-enable guest mode on mount
     useEffect(() => {
         const guestMode = isGuestMode();
-        if (guestMode) {
-            const gId = generateGuestId();
-            setIsGuest(true);
-            setGuestId(gId);
+        if (!guestMode) {
+            // Auto-enable guest mode for free access
+            setGuestMode(true);
         }
+        const gId = generateGuestId();
+        setIsGuest(true);
+        setGuestId(gId);
     }, []);
 
     const enableGuestMode = () => {
