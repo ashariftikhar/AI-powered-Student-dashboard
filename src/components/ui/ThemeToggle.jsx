@@ -1,58 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
-import { useAuth } from '../../context/AuthContext';
 
-/**
- * ThemeToggle Component
- * 
- * Manages dark/light mode preference using Firestore and applies the 'dark'
- * class to the document root.
- */
 const ThemeToggle = () => {
-    const { currentUser } = useAuth();
-    const [isDark, setIsDark] = useState(false);
+    const [isDark, setIsDark] = useState(() => {
+        const saved = localStorage.getItem('theme');
+        return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    });
 
-    // Sync with Firestore settings
-    useEffect(() => {
-        if (!currentUser) return;
-
-        const docRef = doc(db, 'users', currentUser.uid, 'settings', 'appearance');
-        const unsubscribe = onSnapshot(docRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setIsDark(data.theme === 'dark');
-            } else {
-                // Default to system preference if no Firestore setting exists
-                const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                setIsDark(systemPrefersDark);
-            }
-        });
-
-        return unsubscribe;
-    }, [currentUser]);
-
-    // Apply the theme class to the document element
     useEffect(() => {
         if (isDark) {
             document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
         }
     }, [isDark]);
 
-    const toggleTheme = async () => {
-        if (!currentUser) return;
-
-        const newTheme = isDark ? 'light' : 'dark';
-        const docRef = doc(db, 'users', currentUser.uid, 'settings', 'appearance');
-
-        try {
-            await setDoc(docRef, { theme: newTheme }, { merge: true });
-        } catch (error) {
-            console.error("Failed to save theme setting:", error);
-        }
+    const toggleTheme = () => {
+        setIsDark(!isDark);
     };
 
     return (
