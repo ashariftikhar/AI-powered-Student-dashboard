@@ -421,11 +421,11 @@ MIT License - Free to use, modify, and distribute
 
 ## 👨‍💻 Author
 
-**Ashraf Tikhar**
+**Ashar Iftikhar**
 
 - GitHub: [@ashariftikhar](https://github.com/ashariftikhar)
-- LinkedIn: [Connect with me](https://linkedin.com/in/ashariftikhar)
-- Portfolio: [ashariftikhar.dev](https://ashariftikhar.dev)
+- LinkedIn: [Connect with me](https://www.linkedin.com/in/ashariftikharofficial)
+- Portfolio: [ashariftikhar.dev](https://ashariftikhar.vercel.app/)
 
 ---
 
@@ -451,28 +451,11 @@ If this project helped you, please consider:
 
 ---
 
-## 📊 Project Stats
-
-![GitHub stars](https://img.shields.io/github/stars/ashariftikhar/AI-powered-Student-dashboard?style=social)
-![GitHub forks](https://img.shields.io/github/forks/ashariftikhar/AI-powered-Student-dashboard?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/ashariftikhar/AI-powered-Student-dashboard?style=social)
-
----
-
-## 🔗 Related Projects
-
-- [Student Planner Pro](https://github.com/example/student-planner)
-- [AI Study Assistant](https://github.com/example/ai-study)
-- [Task Manager Plus](https://github.com/example/task-manager)
-
----
-
 ## 📞 Contact & Support
 
-- 📧 Email: support@studentdashboard.com
-- 💬 Discord: [Join our community](https://discord.gg/studentdash)
-- 🐦 Twitter: [@studentdash](https://twitter.com/studentdash)
-- 📱 Telegram: [Student Dashboard Group](https://t.me/studentdash)
+- 📧 Email: officialashii72@gmail.com
+- 🐦 Twitter: [@AsharIftikhar](https://x.com/AsharIftikkhar)
+- 📱 Linkedln: [Ashar Iftikhar](https://www.linkedin.com/in/ashariftikharofficial)
 
 ---
 
